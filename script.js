@@ -1,70 +1,60 @@
 
 /*
- * Casa Vista Sur
- * IMPORTANTE: reemplaza el número por el WhatsApp real.
- * Formato internacional, solo números, sin + ni espacios.
- * Ejemplo de Chile: 56912345678
- */
+  Casa Vista Sur
+  IMPORTANTE: reemplaza el número de ejemplo por el WhatsApp real.
+  Usa código de país + número, sin el signo + ni espacios.
+  Ejemplo de formato chileno: 56912345678
+*/
 const WHATSAPP_NUMBER = "56912345678";
 
+const DEFAULT_MESSAGE =
+  "Hola, quisiera consultar por Casa Vista Sur. ¿Me pueden compartir disponibilidad, tarifas y ubicación?";
+
 function createWhatsAppUrl(message) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  return "https://wa.me/" + WHATSAPP_NUMBER +
+    "?text=" + encodeURIComponent(message);
 }
 
-// Menú móvil
-const menuToggle = document.querySelector("#menuToggle");
-const navLinks = document.querySelector("#navLinks");
+// Enlaces directos a WhatsApp.
+document.querySelectorAll("[data-whatsapp]").forEach(function(link) {
+  link.href = createWhatsAppUrl(DEFAULT_MESSAGE);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+});
 
-if (menuToggle && navLinks) {
-  menuToggle.addEventListener("click", () => {
-    const isOpen = navLinks.classList.toggle("open");
+// Año automático en el pie de página.
+const year = document.getElementById("year");
+if (year) {
+  year.textContent = new Date().getFullYear();
+}
 
-    menuToggle.setAttribute("aria-expanded", String(isOpen));
+// Menú adaptable a celulares.
+const menuToggle = document.querySelector(".menu-toggle");
+const menu = document.getElementById("menu");
+
+if (menuToggle && menu) {
+  menuToggle.addEventListener("click", function() {
+    const open = menu.classList.toggle("open");
+    menuToggle.setAttribute("aria-expanded", String(open));
     menuToggle.setAttribute(
       "aria-label",
-      isOpen ? "Cerrar menú" : "Abrir menú"
+      open ? "Cerrar menú" : "Abrir menú"
     );
-    menuToggle.textContent = isOpen ? "×" : "☰";
+    menuToggle.textContent = open ? "✕" : "☰";
   });
 
-  navLinks.querySelectorAll("a").forEach(link => {
-    link.addEventListener("click", () => {
-      navLinks.classList.remove("open");
+  menu.querySelectorAll("a").forEach(function(link) {
+    link.addEventListener("click", function() {
+      menu.classList.remove("open");
       menuToggle.setAttribute("aria-expanded", "false");
       menuToggle.setAttribute("aria-label", "Abrir menú");
       menuToggle.textContent = "☰";
     });
   });
-
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-      navLinks.classList.remove("open");
-      menuToggle.setAttribute("aria-expanded", "false");
-      menuToggle.setAttribute("aria-label", "Abrir menú");
-      menuToggle.textContent = "☰";
-    }
-  });
 }
 
-// Año automático del pie de página
-const yearElement = document.querySelector("#year");
-
-if (yearElement) {
-  yearElement.textContent = new Date().getFullYear();
-}
-
-// Enlaces de consulta general por WhatsApp
-const generalMessage =
-  "Hola, vi la página de Casa Vista Sur y quisiera consultar por disponibilidad, precios y condiciones de la estadía.";
-
-document.querySelectorAll(".whatsapp-link").forEach(link => {
-  link.href = createWhatsAppUrl(generalMessage);
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-});
-
-// Fecha mínima: hoy, según la fecha local del navegador
-const dateInput = document.querySelector("#reservationDate");
+// Evita seleccionar fechas anteriores al día actual.
+const dateInput = document.getElementById("fecha");
 
 if (dateInput) {
   const now = new Date();
@@ -75,56 +65,39 @@ if (dateInput) {
   dateInput.min = localDate;
 }
 
-// Formulario de consulta
-const reservationForm = document.querySelector("#reservationForm");
+// Formulario: prepara la consulta y abre WhatsApp.
+// No confirma automáticamente una reserva.
+const bookingForm = document.getElementById("booking-form");
 
-if (reservationForm) {
-  reservationForm.addEventListener("submit", event => {
+if (bookingForm) {
+  bookingForm.addEventListener("submit", function(event) {
     event.preventDefault();
 
-    if (!reservationForm.reportValidity()) {
-      return;
+    if (!bookingForm.reportValidity()) return;
+
+    const data = new FormData(bookingForm);
+    const date = data.get("fecha");
+    const time = data.get("horario");
+    const people = data.get("personas");
+    const extra = String(data.get("mensaje") || "").trim();
+
+    const lines = [
+      "Hola, quisiera consultar una reserva en Casa Vista Sur.",
+      "Fecha: " + date,
+      "Horario preferido: " + time,
+      "Cantidad de personas: " + people
+    ];
+
+    if (extra) {
+      lines.push("Mensaje adicional: " + extra);
     }
 
-    const date = document.querySelector("#reservationDate").value;
-    const guests = document.querySelector("#guestCount").value;
-    const time = document.querySelector("#timePreference").value;
-    const extraMessage = document
-      .querySelector("#reservationMessage")
-      .value.trim();
+    lines.push("¿Me pueden confirmar disponibilidad, tarifa y ubicación?");
 
-    const [year, month, day] = date.split("-");
-    const formattedDate = `${day}/${month}/${year}`;
-
-    let message =
-      "Hola, vi la página de Casa Vista Sur y quisiera consultar por una estadía.\n\n" +
-      `Fecha de interés: ${formattedDate}\n` +
-      `Cantidad de personas: ${guests}\n` +
-      `Horario de interés: ${time}\n\n` +
-      "¿Me podrían indicar disponibilidad, precio y condiciones?";
-
-    if (extraMessage) {
-      message += `\n\nMensaje adicional: ${extraMessage}`;
-    }
-
-    const feedback = document.querySelector("#reservationFeedback");
-    const whatsappUrl = createWhatsAppUrl(message);
-
-    if (feedback) {
-      feedback.textContent =
-        "Abriendo WhatsApp. Revisa tu consulta y envíala para contactar al alojamiento.";
-    }
-
-    // Abre WhatsApp con el mensaje preparado.
-    const whatsappWindow = window.open(
-      whatsappUrl,
+    window.open(
+      createWhatsAppUrl(lines.join("\n")),
       "_blank",
       "noopener,noreferrer"
     );
-
-    // Alternativa si el navegador bloquea la nueva ventana.
-    if (!whatsappWindow) {
-      window.location.href = whatsappUrl;
-    }
   });
 }
